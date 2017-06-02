@@ -10,6 +10,7 @@ Example of processed video:
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/z2wQBNDYRXg" frameborder="0" allowfullscreen></iframe>
 
+[![Keras R-CNN object counting](https://img.youtube.com/vi/z2wQBNDYRXg/0.jpg)](https://www.youtube.com/embed/z2wQBNDYRXg)
 Usage:
 
 Script arguments are rather self explanatory:
