@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import sys
 import pickle
+import itertools
+import operator
 from optparse import OptionParser
 import time
 from keras_frcnn import config
@@ -41,11 +43,15 @@ C.rot_90 = False
 
 img_path = options.test_path
 
+def accumulate(l):
+    it = itertools.groupby(l, operator.itemgetter(0))
+    for key, subiter in it:
+		yield key, sum(item[1] for item in subiter)
 
 def format_img(img, C):
 	img_min_side = float(C.im_size)
 	(height,width,_) = img.shape
-	
+
 	if width <= height:
 		f = img_min_side/width
 		new_height = int(f * height)
@@ -131,7 +137,7 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 	img_scaled[:, :, 0] += 123.68
 	img_scaled[:, :, 1] += 116.779
 	img_scaled[:, :, 2] += 103.939
-	
+
 	img_scaled = img_scaled.astype(np.uint8)
 
 	if K.image_dim_ordering() == 'tf':
@@ -139,7 +145,7 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 
 	# get the feature maps and output from the RPN
 	[Y1, Y2, F] = model_rpn.predict(X)
-	
+
 
 	R = roi_helpers.rpn_to_roi(Y1, Y2, C, K.image_dim_ordering(), overlap_thresh=0.7)
 
@@ -194,10 +200,9 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 			probs[cls_name].append(np.max(P_cls[0, ii, :]))
 
 	all_dets = []
-
+	all_objects = []
 	for key in bboxes:
 		bbox = np.array(bboxes[key])
-
 		new_boxes, new_probs = roi_helpers.non_max_suppression_fast(bbox, np.array(probs[key]), overlap_thresh=0.5)
 		for jk in range(new_boxes.shape[0]):
 			(x1, y1, x2, y2) = new_boxes[jk,:]
@@ -206,15 +211,18 @@ for idx, img_name in enumerate(sorted(os.listdir(img_path))):
 
 			textLabel = '{}: {}'.format(key,int(100*new_probs[jk]))
 			all_dets.append((key,100*new_probs[jk]))
-
+			all_objects.append((key, 1))
 			(retval,baseLine) = cv2.getTextSize(textLabel,cv2.FONT_HERSHEY_COMPLEX,1,1)
 			textOrg = (x1, y1-0)
-
 			cv2.rectangle(img_scaled, (textOrg[0] - 5, textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (0, 0, 0), 2)
 			cv2.rectangle(img_scaled, (textOrg[0] - 5,textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (255, 255, 255), -1)
 			cv2.putText(img_scaled, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
 	print('Elapsed time = {}'.format(time.time() - st))
-	cv2.imshow('img', img_scaled)
-	cv2.waitKey(0)
-	#cv2.imwrite('./imgs/{}.png'.format(idx),img_scaled)
+	#cv2.imshow('img', img_scaled)
+	#cv2.waitKey(0)
+	print list(accumulate(all_objects))
+	height, width, channels = img_scaled.shape
+	cv2.rectangle(img_scaled, (0,0), (width, 30), (0, 0, 0), -1)
+	cv2.putText(img_scaled, "Obj count: " + str(list(accumulate(all_objects))), (5, 19), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255), 1)
+	cv2.imwrite(r'/home/ubuntu/{}.jpeg'.format(idx),img_scaled)
 	print(all_dets)
