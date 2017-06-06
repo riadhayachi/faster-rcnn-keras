@@ -24,7 +24,7 @@ Script arguments are rather self explanatory:
 Example usage:
 
 ```bash
-python test_frcnn2.py --input_file ~/videos/MVI_6848.mp4 --output_file ~/output4.mp4 --frame_rate=25
+python test_frcnn_count.py --input_file ~/videos/MVI_6848.mp4 --output_file ~/output4.mp4 --frame_rate=25
 ```
 
 For usage in training please see the oryginal project GitHub page. 
